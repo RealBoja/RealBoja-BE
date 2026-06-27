@@ -72,13 +72,22 @@ jobs:
           scp -v -i private_key.pem -o StrictHostKeyChecking=no "$JAR_FILE" $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/BackEnd.jar
           scp -v -i private_key.pem -o StrictHostKeyChecking=no .env $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/.env
 
-          ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST "
-            pkill -f 'java -jar /home/$EC2_USERNAME/BackEnd.jar' || true
-            sleep 5
+          ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST "bash -lc '
+            APP_DIR=/home/$EC2_USERNAME
+            PID_FILE=\$APP_DIR/app.pid
+
+            if [ -f \"\$PID_FILE\" ]; then
+              kill \$(cat \"\$PID_FILE\") || true
+              rm -f \"\$PID_FILE\"
+              sleep 5
+            fi
+
             set -a
-            source /home/$EC2_USERNAME/.env
+            source \"\$APP_DIR/.env\"
             set +a
-            nohup java -jar /home/$EC2_USERNAME/BackEnd.jar > /home/$EC2_USERNAME/app.log 2>&1 &
-          "
+
+            nohup java -jar \"\$APP_DIR/BackEnd.jar\" > \"\$APP_DIR/app.log\" 2>&1 &
+            echo \$! > \"\$PID_FILE\"
+          '"
 
           rm -f private_key.pem .env
