@@ -1,18 +1,21 @@
 package com.realboja.backend.domain.reaction.dto;
 
-import com.realboja.backend.domain.reaction.Reaction;
+import com.realboja.backend.domain.reaction.Participant;
+import com.realboja.backend.domain.room.RoomStep;
 
 public record ParticipantResponse(
 	Long participantId,
 	String roomCode,
-	String nickname
+	String nickname,
+	RoomStep currentStep
 ) {
 
-	public static ParticipantResponse from(Reaction reaction) {
+	public static ParticipantResponse from(Participant participant) {
 		return new ParticipantResponse(
-			reaction.getReactionId(),
-			reaction.getRoom().getRoomCode(),
-			reaction.getNickname()
+			participant.getParticipantId(),
+			participant.getRoom().getRoomCode(),
+			participant.getNickname(),
+			participant.getRoom().getCurrentStep()
 		);
 	}
 }

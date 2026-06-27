@@ -1,6 +1,7 @@
 package com.realboja.backend.domain.reaction.controller;
 
 import com.realboja.backend.domain.reaction.ReactionService;
+import com.realboja.backend.domain.reaction.dto.CreateParticipantRequest;
 import com.realboja.backend.domain.reaction.dto.CreateReactionRequest;
 import com.realboja.backend.domain.reaction.dto.CreateReactionResponse;
 import com.realboja.backend.domain.reaction.dto.ParticipantResponse;
@@ -27,7 +28,20 @@ public class ReactionController {
 
 	private final ReactionService reactionService;
 
-	@Operation(summary = "반응 남기기", description = "닉네임 기반으로 약속방에 반응을 남깁니다. 같은 닉네임이면 기존 반응을 수정합니다.")
+	@Operation(summary = "참가자 등록", description = "약속방에서 사용할 닉네임을 등록하고 participantId를 발급합니다.")
+	@ApiResponses({
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "참가자 등록 성공")
+	})
+	@PostMapping("/participants")
+	public ResponseEntity<ApiResponse<ParticipantResponse>> createParticipant(
+		@PathVariable String roomCode,
+		@Valid @RequestBody CreateParticipantRequest request
+	) {
+		return ResponseEntity.status(HttpStatus.CREATED)
+			.body(ApiResponse.success(reactionService.createParticipant(roomCode, request)));
+	}
+
+	@Operation(summary = "반응 남기기", description = "participantId 기반으로 약속방에 반응을 남깁니다. 같은 참가자면 기존 반응을 수정합니다.")
 	@ApiResponses({
 		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "반응 생성 또는 수정 성공")
 	})
