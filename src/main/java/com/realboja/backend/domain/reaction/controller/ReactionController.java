@@ -6,6 +6,7 @@ import com.realboja.backend.domain.reaction.dto.CreateReactionResponse;
 import com.realboja.backend.domain.reaction.dto.ParticipantResponse;
 import com.realboja.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,9 @@ public class ReactionController {
 	private final ReactionService reactionService;
 
 	@Operation(summary = "반응 남기기", description = "닉네임 기반으로 약속방에 반응을 남깁니다. 같은 닉네임이면 기존 반응을 수정합니다.")
+	@ApiResponses({
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "반응 생성 또는 수정 성공")
+	})
 	@PostMapping("/reactions")
 	public ResponseEntity<ApiResponse<CreateReactionResponse>> createReaction(
 		@PathVariable String roomCode,
@@ -37,6 +41,9 @@ public class ReactionController {
 	}
 
 	@Operation(summary = "참가자 확인", description = "localStorage에 저장된 participantId가 해당 방에서 유효한지 확인합니다.")
+	@ApiResponses({
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "참가자 확인 성공")
+	})
 	@GetMapping("/participants/{participantId}")
 	public ResponseEntity<ApiResponse<ParticipantResponse>> getParticipant(
 		@PathVariable String roomCode,
