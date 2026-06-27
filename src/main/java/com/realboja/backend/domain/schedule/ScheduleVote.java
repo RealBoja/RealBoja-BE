@@ -29,6 +29,9 @@ public class ScheduleVote {
     @Column(nullable = false, length = 10)
     private String nickname;
 
+    @Column(length = 100)
+    private String location;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TimeSlot timeSlot;

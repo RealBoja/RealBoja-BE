@@ -7,12 +7,19 @@ import java.util.List;
 public record ScheduleResultResponse(
         int participantCount,
         TimeSlotResult topTimeSlot,
-        List<TimeSlotResult> results
+        List<TimeSlotResult> results,
+        List<PlaceRecommendation> placeRecommendations
 ) {
     public record TimeSlotResult(
             TimeSlot timeSlot,
             String label,
             int count,
             List<String> nicknames
+    ) {}
+
+    public record PlaceRecommendation(
+            String area,
+            String reason,
+            List<String> hashtags
     ) {}
 }
