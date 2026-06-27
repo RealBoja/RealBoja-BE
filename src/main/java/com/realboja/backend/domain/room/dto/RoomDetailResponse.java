@@ -1,5 +1,6 @@
 package com.realboja.backend.domain.room.dto;
 
+import com.realboja.backend.domain.common.LastMet;
 import com.realboja.backend.domain.common.Purpose;
 import com.realboja.backend.domain.common.RoomType;
 import com.realboja.backend.domain.common.Tone;
@@ -12,6 +13,7 @@ public record RoomDetailResponse(
         Long roomId,
         String roomCode,
         RoomType roomType,
+        LastMet lastMeeting,
         int roomSize,
         Purpose purpose,
         Tone tone,
@@ -23,6 +25,7 @@ public record RoomDetailResponse(
                 room.getRoomId(),
                 room.getRoomCode(),
                 room.getRoomType(),
+                room.getLastMeeting(),
                 room.getRoomSize(),
                 room.getPurpose(),
                 room.getTone(),

@@ -1,5 +1,6 @@
 package com.realboja.backend.domain.room;
 
+import com.realboja.backend.domain.common.LastMet;
 import com.realboja.backend.domain.common.Purpose;
 import com.realboja.backend.domain.common.RoomType;
 import com.realboja.backend.domain.common.Tone;
@@ -26,6 +27,10 @@ public class Room {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RoomType roomType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private LastMet lastMeeting;
 
     @Column(nullable = false)
     private int roomSize;
