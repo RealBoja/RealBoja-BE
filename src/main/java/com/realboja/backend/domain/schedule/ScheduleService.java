@@ -3,6 +3,7 @@ package com.realboja.backend.domain.schedule;
 import com.realboja.backend.domain.room.Room;
 import com.realboja.backend.domain.room.RoomRepository;
 import com.realboja.backend.domain.schedule.dto.ScheduleResultResponse;
+import com.realboja.backend.domain.schedule.dto.ScheduleResultResponse.PlaceRecommendation;
 import com.realboja.backend.domain.schedule.dto.ScheduleResultResponse.TimeSlotResult;
 import com.realboja.backend.domain.schedule.dto.SubmitScheduleRequest;
 import com.realboja.backend.domain.schedule.dto.SubmitScheduleResponse;
@@ -11,7 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -21,6 +24,7 @@ public class ScheduleService {
 
     private final RoomRepository roomRepository;
     private final ScheduleVoteRepository scheduleVoteRepository;
+    private final PlaceRecommendationService placeRecommendationService;
 
     @Transactional
     public SubmitScheduleResponse submitSchedule(String roomCode, SubmitScheduleRequest request) {
@@ -36,12 +40,13 @@ public class ScheduleService {
                 .map(slot -> ScheduleVote.builder()
                         .room(room)
                         .nickname(request.nickname())
+                        .location(request.location())
                         .timeSlot(slot)
                         .build())
                 .toList();
 
         scheduleVoteRepository.saveAll(votes);
-        return SubmitScheduleResponse.of(room.getRoomCode(), request.nickname(), distinctSlots);
+        return SubmitScheduleResponse.of(room.getRoomCode(), request.nickname(), request.location(), distinctSlots);
     }
 
     @Transactional(readOnly = true)
@@ -72,7 +77,21 @@ public class ScheduleService {
                 .findFirst()
                 .orElse(null);
 
-        return new ScheduleResultResponse(participants.size(), topTimeSlot, results);
+        Map<String, String> participantLocations = votes.stream()
+                .filter(v -> v.getLocation() != null && !v.getLocation().isBlank())
+                .collect(Collectors.toMap(
+                        ScheduleVote::getNickname,
+                        ScheduleVote::getLocation,
+                        (existing, replacement) -> replacement,
+                        LinkedHashMap::new
+                ));
+
+        List<PlaceRecommendation> placeRecommendations = placeRecommendationService.recommend(
+                participantLocations,
+                topTimeSlot == null ? null : topTimeSlot.timeSlot()
+        );
+
+        return new ScheduleResultResponse(participants.size(), topTimeSlot, results, placeRecommendations);
     }
 
     private Room findRoom(String roomCode) {
