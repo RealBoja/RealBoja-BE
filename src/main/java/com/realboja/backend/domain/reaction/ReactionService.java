@@ -1,6 +1,7 @@
 package com.realboja.backend.domain.reaction;
 
 import com.realboja.backend.domain.common.ReactionType;
+import com.realboja.backend.domain.reaction.dto.CreateParticipantRequest;
 import com.realboja.backend.domain.reaction.dto.CreateReactionRequest;
 import com.realboja.backend.domain.reaction.dto.CreateReactionResponse;
 import com.realboja.backend.domain.reaction.dto.ParticipantResponse;
@@ -17,20 +18,38 @@ public class ReactionService {
 
 	private final RoomRepository roomRepository;
 	private final ReactionRepository reactionRepository;
+	private final ParticipantRepository participantRepository;
+
+	@Transactional
+	public ParticipantResponse createParticipant(String roomCode, CreateParticipantRequest request) {
+		Room room = roomRepository.findByRoomCode(roomCode)
+			.orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없습니다"));
+
+		Participant participant = Participant.builder()
+			.room(room)
+			.nickname(request.nickname())
+			.build();
+
+		return ParticipantResponse.from(participantRepository.save(participant));
+	}
 
 	@Transactional
 	public CreateReactionResponse createReaction(String roomCode, CreateReactionRequest request) {
 		Room room = roomRepository.findByRoomCode(roomCode)
 			.orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없습니다"));
 
-		Reaction reaction = reactionRepository.findByRoomAndNickname(room, request.nickname())
+		Participant participant = participantRepository.findByRoomAndParticipantId(room, request.participantId())
+			.orElseThrow(() -> new IllegalArgumentException("참가자를 찾을 수 없습니다"));
+
+		Reaction reaction = reactionRepository.findByRoomAndParticipant(room, participant)
 			.map(existingReaction -> {
 				existingReaction.updateReactionType(request.reactionType());
 				return existingReaction;
 			})
 			.orElseGet(() -> Reaction.builder()
 				.room(room)
-				.nickname(request.nickname())
+				.participant(participant)
+				.nickname(participant.getNickname())
 				.reactionType(request.reactionType())
 				.build());
 
@@ -45,10 +64,10 @@ public class ReactionService {
 		Room room = roomRepository.findByRoomCode(roomCode)
 			.orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없습니다"));
 
-		Reaction reaction = reactionRepository.findByRoomAndReactionId(room, participantId)
+		Participant participant = participantRepository.findByRoomAndParticipantId(room, participantId)
 			.orElseThrow(() -> new IllegalArgumentException("참가자를 찾을 수 없습니다"));
 
-		return ParticipantResponse.from(reaction);
+		return ParticipantResponse.from(participant);
 	}
 
 	private int calculateTemperature(List<Reaction> reactions, int roomSize) {
