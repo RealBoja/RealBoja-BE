@@ -130,12 +130,17 @@ public class PlaceRecommendationService {
     private PlaceRecommendation normalizeRecommendation(PlaceRecommendation recommendation) {
         List<String> hashtags = recommendation.hashtags() == null ? List.of() : recommendation.hashtags().stream()
                 .filter(tag -> tag != null && !tag.isBlank())
+                .map(String::strip)
                 .map(tag -> tag.startsWith("#") ? tag : "#" + tag)
                 .limit(3)
                 .toList();
 
         if (hashtags.size() == 3) {
-            return recommendation;
+            return new PlaceRecommendation(
+                    recommendation.area(),
+                    recommendation.reason(),
+                    hashtags
+            );
         }
 
         return new PlaceRecommendation(
