@@ -1,49 +1,73 @@
-name: Deploy Backend
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "develop" ]
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_KEY }}
-          script: |
-            if [ ! -d ~/RealBoja-BE ]; then
-              git clone https://github.com/RealBoja/RealBoja-BE.git ~/RealBoja-BE
-            fi
+          distribution: 'temurin'
+          java-version: '21'
 
-            cd ~/RealBoja-BE
-            DEPLOY_BRANCH="${{ github.ref_name }}"
-            git fetch origin
-            git switch "$DEPLOY_BRANCH" || git switch -c "$DEPLOY_BRANCH" "origin/$DEPLOY_BRANCH"
-            git pull origin "$DEPLOY_BRANCH"
+      - name: Grant execute permission
+        run: chmod +x gradlew
 
-            cat > .env <<'EOF'
-            SPRING_PROFILES_ACTIVE=local
-            SERVER_PORT=8080
-            DB_HOST=${{ secrets.DB_HOST }}
-            DB_PORT=${{ secrets.DB_PORT }}
-            DB_NAME=${{ secrets.DB_NAME }}
-            DB_USERNAME=${{ secrets.DB_USERNAME }}
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
-            EOF
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
-            chmod +x ./gradlew
+      - name: Build
+        run: ./gradlew clean build -x test
+
+      - name: Upload jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: build/libs/*.jar
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download jar
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-jar
+          path: build/libs/
+
+      - name: Deploy to EC2
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          ENV: ${{ secrets.ENV }}
+        run: |
+          echo "$EC2_SSH_KEY" > private_key.pem
+          chmod 600 private_key.pem
+
+          printf "%s" "$ENV" > .env
+
+          JAR_FILE=$(find build/libs -name '*.jar' ! -name '*plain.jar' | head -n 1)
+
+          scp -i private_key.pem -o StrictHostKeyChecking=no "$JAR_FILE" $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/BackEnd.jar
+          scp -i private_key.pem -o StrictHostKeyChecking=no .env $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/.env
+
+          ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST "
+            pkill -f 'java -jar /home/$EC2_USERNAME/BackEnd.jar' || true
+            sleep 5
             set -a
-            source .env
+            source /home/$EC2_USERNAME/.env
             set +a
+            nohup java -jar /home/$EC2_USERNAME/BackEnd.jar > /home/$EC2_USERNAME/app.log 2>&1 &
+          "
 
-            ./gradlew clean build -x test
-
-            pkill -f 'java -jar.*RealBoja-Backend' || true
-            JAR_FILE=$(ls build/libs/*.jar | grep -v plain | head -n 1)
-            nohup java -jar "$JAR_FILE" > app.log 2>&1 &
+          rm -f private_key.pem .env
