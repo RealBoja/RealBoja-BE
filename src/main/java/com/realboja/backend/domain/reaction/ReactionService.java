@@ -10,6 +10,7 @@ import com.realboja.backend.domain.room.RoomRepository;
 import com.realboja.backend.domain.room.RoomStep;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,12 +27,22 @@ public class ReactionService {
 		Room room = roomRepository.findByRoomCode(roomCode)
 			.orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없습니다"));
 
+		String nickname = request.nickname().trim();
+
+		if (participantRepository.existsByRoomAndNickname(room, nickname)) {
+			throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+		}
+
 		Participant participant = Participant.builder()
 			.room(room)
-			.nickname(request.nickname())
+			.nickname(nickname)
 			.build();
 
-		return ParticipantResponse.from(participantRepository.save(participant));
+		try {
+			return ParticipantResponse.from(participantRepository.save(participant));
+		} catch (DataIntegrityViolationException e) {
+			throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+		}
 	}
 
 	@Transactional
