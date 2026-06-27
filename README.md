@@ -1,8 +1,8 @@
-# 진짜보자 Backend
+# RealBoja Backend
 
-진짜보자 Spring Boot 백엔드 레포지토리입니다.
+RealBoja Spring Boot 백엔드 레포지토리입니다.
 
-진짜보자는 조용해진 단톡방에 AI 약속 카드를 공유하고, 참여자 반응을 기반으로 방의 약속 상태를 분석해 실제 만남으로 이어주는 약속 재점화 서비스입니다.
+RealBoja는 조용해진 단톡방에 AI 약속 카드를 공유하고, 참여자 반응을 기반으로 방의 약속 상태를 분석해 실제 만남으로 이어주는 약속 재점화 서비스입니다.
 
 ## 역할
 
@@ -22,8 +22,8 @@
 ## 추천 구조
 
 ```
-JinjjaBoja-Backend/
-├─ src/main/java/com/jinjjaboja/backend/
+RealBoja-Backend/
+├─ src/main/java/com/realboja/backend/
 ├─ src/main/resources/
 ├─ docs/
 └─ .github/
@@ -35,7 +35,22 @@ JinjjaBoja-Backend/
 - `Card`: 카드 (깨우기/결과/메뉴/시간대/가벼운 만남/부스터)
 - `Reaction`: 닉네임 기반 참여자 반응
 - `Analysis`: 약속 온도, 방 지표, 방 상태, 다음 카드 추천
+- `Stage`: 약속 진행 단계 (기획서 기준 핵심 도메인)
 - `Notification`: 반응 수집, 결과 카드 공유 알림 (P1)
+
+## 로컬 실행
+
+```bash
+cp .env.example .env
+docker compose up -d
+./gradlew bootRun
+```
+
+Health check:
+
+```bash
+curl http://localhost:8080/api/health
+```
 
 ## 브랜치 컨벤션
 
@@ -73,4 +88,3 @@ docs: update API contract
 | `perf` | 성능을 개선할 때 (쿼리 최적화 등) |
 
 > 규칙: subject는 50자 이내, 마침표 없이, "무엇을 했다" 위주로 명확하게 작성합니다.
->
