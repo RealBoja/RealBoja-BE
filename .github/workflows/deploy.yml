@@ -51,8 +51,9 @@ jobs:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           ENV: ${{ secrets.ENV }}
         run: |
-          echo "$EC2_SSH_KEY" > private_key.pem
+          printf "%s\n" "$EC2_SSH_KEY" > private_key.pem
           chmod 600 private_key.pem
+          ssh-keygen -y -f private_key.pem > /dev/null
 
           printf "%s" "$ENV" > .env
 
