@@ -4,16 +4,18 @@ import com.realboja.backend.domain.common.ReactionType;
 import com.realboja.backend.domain.reaction.Reaction;
 
 public record CreateReactionResponse(
-	Long reactionId,
-	String nickname,
-	ReactionType reactionType
+	Long participantId,
+	String roomCode,
+	ReactionType reactionType,
+	Integer temperature
 ) {
 
-	public static CreateReactionResponse from(Reaction reaction) {
+	public static CreateReactionResponse of(Reaction reaction, Integer temperature) {
 		return new CreateReactionResponse(
 			reaction.getReactionId(),
-			reaction.getNickname(),
-			reaction.getReactionType()
+			reaction.getRoom().getRoomCode(),
+			reaction.getReactionType(),
+			temperature
 		);
 	}
 }

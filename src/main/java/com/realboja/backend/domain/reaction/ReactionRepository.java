@@ -10,4 +10,6 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
 	List<Reaction> findAllByRoom(Room room);
 
 	Optional<Reaction> findByRoomAndNickname(Room room, String nickname);
+
+	Optional<Reaction> findByRoomAndReactionId(Room room, Long reactionId);
 }
