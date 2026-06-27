@@ -6,12 +6,21 @@ spring:
 
 server:
   port: ${SERVER_PORT:8080}
+  address: 0.0.0.0
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  model: gemini-2.5-flash
 
 ---
 spring:
@@ -50,7 +59,3 @@ spring:
       ddl-auto: create-drop
     show-sql: true
     open-in-view: false
-
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
