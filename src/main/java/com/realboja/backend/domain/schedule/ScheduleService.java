@@ -1,0 +1,82 @@
+package com.realboja.backend.domain.schedule;
+
+import com.realboja.backend.domain.room.Room;
+import com.realboja.backend.domain.room.RoomRepository;
+import com.realboja.backend.domain.schedule.dto.ScheduleResultResponse;
+import com.realboja.backend.domain.schedule.dto.ScheduleResultResponse.TimeSlotResult;
+import com.realboja.backend.domain.schedule.dto.SubmitScheduleRequest;
+import com.realboja.backend.domain.schedule.dto.SubmitScheduleResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class ScheduleService {
+
+    private final RoomRepository roomRepository;
+    private final ScheduleVoteRepository scheduleVoteRepository;
+
+    @Transactional
+    public SubmitScheduleResponse submitSchedule(String roomCode, SubmitScheduleRequest request) {
+        Room room = findRoom(roomCode);
+
+        // 같은 닉네임이 다시 제출하면 기존 선택을 모두 지우고 새로 저장 (중복 선택 = 여러 행)
+        scheduleVoteRepository.deleteByRoomAndNickname(room, request.nickname());
+
+        // 같은 시간대를 중복으로 보내도 한 번만 저장
+        List<TimeSlot> distinctSlots = request.timeSlots().stream().distinct().toList();
+
+        List<ScheduleVote> votes = distinctSlots.stream()
+                .map(slot -> ScheduleVote.builder()
+                        .room(room)
+                        .nickname(request.nickname())
+                        .timeSlot(slot)
+                        .build())
+                .toList();
+
+        scheduleVoteRepository.saveAll(votes);
+        return SubmitScheduleResponse.of(room.getRoomCode(), request.nickname(), distinctSlots);
+    }
+
+    @Transactional(readOnly = true)
+    public ScheduleResultResponse getResult(String roomCode) {
+        Room room = findRoom(roomCode);
+        List<ScheduleVote> votes = scheduleVoteRepository.findAllByRoom(room);
+
+        // 시간대별 선택한 닉네임 모으기 (선택 안 된 시간대도 0으로 표시)
+        List<TimeSlotResult> results = java.util.Arrays.stream(TimeSlot.values())
+                .map(slot -> {
+                    List<String> nicknames = votes.stream()
+                            .filter(v -> v.getTimeSlot() == slot)
+                            .map(ScheduleVote::getNickname)
+                            .toList();
+                    return new TimeSlotResult(slot, slot.getLabel(), nicknames.size(), nicknames);
+                })
+                .sorted(Comparator.comparingInt(TimeSlotResult::count).reversed())
+                .toList();
+
+        // 참여 인원 = 한 번이라도 투표한 고유 닉네임 수
+        Set<String> participants = votes.stream()
+                .map(ScheduleVote::getNickname)
+                .collect(Collectors.toSet());
+
+        // 최다 선택 시간대 (아무도 안 골랐으면 null)
+        TimeSlotResult topTimeSlot = results.stream()
+                .filter(r -> r.count() > 0)
+                .findFirst()
+                .orElse(null);
+
+        return new ScheduleResultResponse(participants.size(), topTimeSlot, results);
+    }
+
+    private Room findRoom(String roomCode) {
+        return roomRepository.findByRoomCode(roomCode)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 방입니다: " + roomCode));
+    }
+}
