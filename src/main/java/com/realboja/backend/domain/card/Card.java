@@ -19,7 +19,7 @@ public class Card {
     private Long roomId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private CardType cardType;
 
     @Column(nullable = false)
