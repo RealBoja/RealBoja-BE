@@ -57,11 +57,20 @@ jobs:
 
           printf "%s" "$ENV" > .env
 
+          echo "Downloaded artifact files:"
+          ls -al build/libs/
+
           JAR_FILE=$(find build/libs -name '*.jar' ! -name '*plain.jar' | head -n 1)
 
-          ssh -i private_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -v $EC2_USERNAME@$EC2_HOST "whoami"
-          scp -i private_key.pem -o StrictHostKeyChecking=no "$JAR_FILE" $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/BackEnd.jar
-          scp -i private_key.pem -o StrictHostKeyChecking=no .env $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/.env
+          echo "Selected jar: $JAR_FILE"
+          if [ -z "$JAR_FILE" ]; then
+            echo "No executable jar found"
+            exit 1
+          fi
+
+          ssh -i private_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes $EC2_USERNAME@$EC2_HOST "whoami && pwd && ls -ld /home/$EC2_USERNAME"
+          scp -v -i private_key.pem -o StrictHostKeyChecking=no "$JAR_FILE" $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/BackEnd.jar
+          scp -v -i private_key.pem -o StrictHostKeyChecking=no .env $EC2_USERNAME@$EC2_HOST:/home/$EC2_USERNAME/.env
 
           ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USERNAME@$EC2_HOST "
             pkill -f 'java -jar /home/$EC2_USERNAME/BackEnd.jar' || true
