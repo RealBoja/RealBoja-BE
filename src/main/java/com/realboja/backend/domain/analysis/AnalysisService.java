@@ -7,6 +7,7 @@ import com.realboja.backend.domain.reaction.Reaction;
 import com.realboja.backend.domain.reaction.ReactionRepository;
 import com.realboja.backend.domain.room.Room;
 import com.realboja.backend.domain.room.RoomRepository;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -28,9 +29,12 @@ public class AnalysisService {
 
 		List<Reaction> reactions = reactionRepository.findAllByRoom(room);
 		Map<ReactionType, Integer> reactionSummary = createEmptyReactionSummary();
+		Map<ReactionType, List<String>> reactionParticipants = createEmptyReactionParticipants();
 
 		for (Reaction reaction : reactions) {
-			reactionSummary.merge(reaction.getReactionType(), 1, Integer::sum);
+			ReactionType reactionType = reaction.getReactionType();
+			reactionSummary.merge(reactionType, 1, Integer::sum);
+			reactionParticipants.get(reactionType).add(reaction.getNickname());
 		}
 
 		int participantCount = reactions.size();
@@ -46,6 +50,7 @@ public class AnalysisService {
 			room.getRoomSize(),
 			participationRate,
 			reactionSummary,
+			reactionParticipants,
 			createSummary(statusType),
 			createNextAction(statusType)
 		);
@@ -57,6 +62,14 @@ public class AnalysisService {
 			reactionSummary.put(reactionType, 0);
 		}
 		return reactionSummary;
+	}
+
+	private Map<ReactionType, List<String>> createEmptyReactionParticipants() {
+		Map<ReactionType, List<String>> reactionParticipants = new EnumMap<>(ReactionType.class);
+		for (ReactionType reactionType : ReactionType.values()) {
+			reactionParticipants.put(reactionType, new ArrayList<>());
+		}
+		return reactionParticipants;
 	}
 
 	private double calculateParticipationRate(int participantCount, int roomSize) {

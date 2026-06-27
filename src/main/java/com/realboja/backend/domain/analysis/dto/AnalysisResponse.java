@@ -2,6 +2,7 @@ package com.realboja.backend.domain.analysis.dto;
 
 import com.realboja.backend.domain.common.ReactionType;
 import com.realboja.backend.domain.common.StatusType;
+import java.util.List;
 import java.util.Map;
 
 public record AnalysisResponse(
@@ -12,6 +13,7 @@ public record AnalysisResponse(
 	Integer roomSize,
 	Double participationRate,
 	Map<ReactionType, Integer> reactionSummary,
+	Map<ReactionType, List<String>> reactionParticipants,
 	String summary,
 	String nextAction
 ) {
