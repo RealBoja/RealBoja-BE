@@ -90,14 +90,19 @@ public class CardContentGenerator {
                 new GenerationConfig(8192, "application/json")
         );
 
-        GeminiResponse response = RestClient.create().post()
-                .uri(url)
-                .header("Content-Type", "application/json")
-                .body(request)
-                .retrieve()
-                .body(GeminiResponse.class);
+        GeminiResponse response;
+        try {
+            response = RestClient.create().post()
+                    .uri(url)
+                    .header("Content-Type", "application/json")
+                    .body(request)
+                    .retrieve()
+                    .body(GeminiResponse.class);
+        } catch (Exception e) {
+            throw new IllegalStateException("Gemini API 호출 실패: " + e.getMessage(), e);
+        }
 
-        if (response == null || response.candidates().isEmpty()) {
+        if (response == null || response.candidates() == null || response.candidates().isEmpty()) {
             throw new IllegalStateException("Gemini API 응답이 비어 있습니다.");
         }
 
