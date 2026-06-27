@@ -3,6 +3,7 @@ package com.realboja.backend.domain.card;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.realboja.backend.domain.card.dto.CardContent;
+import com.realboja.backend.domain.common.CardType;
 import com.realboja.backend.domain.room.Room;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,13 +24,13 @@ public class CardContentGenerator {
     @Value("${gemini.model:gemini-2.5-flash}")
     private String model;
 
-    public CardContent generate(Room room) {
-        String prompt = buildPrompt(room);
+    public CardContent generate(Room room, CardType cardType) {
+        String prompt = cardType == CardType.SCHEDULE ? buildSchedulePrompt(room) : buildWakePrompt(room);
         String responseText = callGemini(prompt);
         return parseContent(responseText);
     }
 
-    private String buildPrompt(Room room) {
+    private String buildWakePrompt(Room room) {
         return String.format("""
                 당신은 '진짜보자' 앱의 WAKE 카드 문구 생성기입니다.
                 오랫동안 연락이 뜸했던 친구 방을 다시 깨우는 카드를 만들어 주세요.
@@ -50,6 +51,31 @@ public class CardContentGenerator {
                 """,
                 room.getRoomType().getLabel(),
                 room.getLastMeeting().getLabel(),
+                room.getRoomSize(),
+                room.getPurpose().getLabel(),
+                room.getTone().getLabel()
+        );
+    }
+
+    private String buildSchedulePrompt(Room room) {
+        return String.format("""
+                당신은 '진짜보자' 앱의 SCHEDULE 카드 문구 생성기입니다.
+                과반수가 만남 의사를 확인한 친구 방에서, 이제 가능한 시간대를 좁히도록 유도하는 카드를 만들어 주세요.
+
+                방 정보:
+                - 방 유형: %s
+                - 방 인원: %d명
+                - 목적: %s
+                - 톤: %s
+
+                다음 JSON 형식으로만 응답해 주세요. 다른 텍스트는 절대 포함하지 마세요:
+                {
+                  "title": "배지 텍스트 — 현재 단계를 나타내는 짧은 한 줄 (예: 시간만 좁히면 되는 단계)",
+                  "body": "카드 본문 — 만남 의사가 확인됐음을 언급하고 가능한 시간대를 골라달라는 2~3줄 메시지 (줄바꿈은 \\\\n 사용)",
+                  "ctaText": "버튼 텍스트 — 시간대 선택을 유도하는 짧은 한 줄"
+                }
+                """,
+                room.getRoomType().getLabel(),
                 room.getRoomSize(),
                 room.getPurpose().getLabel(),
                 room.getTone().getLabel()

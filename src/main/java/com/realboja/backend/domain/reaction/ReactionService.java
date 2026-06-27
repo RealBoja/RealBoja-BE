@@ -7,6 +7,7 @@ import com.realboja.backend.domain.reaction.dto.CreateReactionResponse;
 import com.realboja.backend.domain.reaction.dto.ParticipantResponse;
 import com.realboja.backend.domain.room.Room;
 import com.realboja.backend.domain.room.RoomRepository;
+import com.realboja.backend.domain.room.RoomStep;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,10 @@ public class ReactionService {
 		Room room = roomRepository.findByRoomCode(roomCode)
 			.orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없습니다"));
 
+		if (room.getCurrentStep() != RoomStep.WARMING) {
+			throw new IllegalStateException("이미 일정 조율 단계로 넘어가 반응을 받을 수 없습니다.");
+		}
+
 		Participant participant = participantRepository.findByRoomAndParticipantId(room, request.participantId())
 			.orElseThrow(() -> new IllegalArgumentException("참가자를 찾을 수 없습니다"));
 
@@ -53,10 +58,11 @@ public class ReactionService {
 				.reactionType(request.reactionType())
 				.build());
 
-		Reaction savedReaction = reactionRepository.save(reaction);
-		int temperature = calculateTemperature(reactionRepository.findAllByRoom(room), room.getRoomSize());
+		reactionRepository.save(reaction);
+		List<Reaction> allReactions = reactionRepository.findAllByRoom(room);
+		int temperature = calculateTemperature(allReactions, room.getRoomSize());
 
-		return CreateReactionResponse.of(savedReaction, temperature);
+		return CreateReactionResponse.of(reaction, temperature);
 	}
 
 	@Transactional(readOnly = true)

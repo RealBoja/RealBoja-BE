@@ -44,12 +44,16 @@ public class Room {
     private Tone tone;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     @Builder.Default
     private RoomStep currentStep = RoomStep.WARMING;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    public void advanceToScheduling() {
+        this.currentStep = RoomStep.SCHEDULING;
+    }
 
     @PrePersist
     public void prePersist() {
