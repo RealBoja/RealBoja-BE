@@ -20,6 +20,7 @@ public class RoomService {
         Room room = Room.builder()
                 .roomCode(generateUniqueRoomCode())
                 .roomType(request.roomType())
+                .lastMeeting(request.lastMeeting())
                 .roomSize(request.roomSize())
                 .purpose(request.purpose())
                 .tone(request.tone())
