@@ -24,7 +24,7 @@ public class EnumController {
     public ResponseEntity<ApiResponse<Map<String, List<EnumValue>>>> getEnums() {
         Map<String, List<EnumValue>> enums = Map.of(
             "roomType", toEnumValues(RoomType.values(), e -> e.getLabel()),
-            "lastMet", toEnumValues(LastMet.values(), e -> e.getLabel()),
+            "lastMeeting", toEnumValues(LastMet.values(), e -> e.getLabel()),
             "purpose", toEnumValues(Purpose.values(), e -> e.getLabel()),
             "tone", toEnumValues(Tone.values(), e -> e.getLabel()),
             "reactionType", toEnumValues(ReactionType.values(), e -> e.getLabel()),

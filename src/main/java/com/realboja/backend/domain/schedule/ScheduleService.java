@@ -4,6 +4,7 @@ import com.realboja.backend.domain.room.Room;
 import com.realboja.backend.domain.room.RoomRepository;
 import com.realboja.backend.domain.schedule.dto.ScheduleResultResponse;
 import com.realboja.backend.domain.schedule.dto.ScheduleResultResponse.PlaceRecommendation;
+import com.realboja.backend.domain.schedule.dto.ScheduleResultResponse.PlaceRecommendationGuide;
 import com.realboja.backend.domain.schedule.dto.ScheduleResultResponse.TimeSlotResult;
 import com.realboja.backend.domain.schedule.dto.SubmitScheduleRequest;
 import com.realboja.backend.domain.schedule.dto.SubmitScheduleResponse;
@@ -91,7 +92,39 @@ public class ScheduleService {
                 topTimeSlot == null ? null : topTimeSlot.timeSlot()
         );
 
-        return new ScheduleResultResponse(participants.size(), topTimeSlot, results, placeRecommendations);
+        PlaceRecommendationGuide placeRecommendationGuide = buildPlaceRecommendationGuide(participantLocations.size());
+
+        return new ScheduleResultResponse(
+                participants.size(),
+                topTimeSlot,
+                results,
+                placeRecommendationGuide,
+                placeRecommendations
+        );
+    }
+
+    private PlaceRecommendationGuide buildPlaceRecommendationGuide(int participantLocationCount) {
+        if (participantLocationCount == 0) {
+            return new PlaceRecommendationGuide(
+                    "EMPTY",
+                    "추천 만남 후보",
+                    "아직 시간대와 출발지를 남긴 사람이 없어요."
+            );
+        }
+
+        if (participantLocationCount == 1) {
+            return new PlaceRecommendationGuide(
+                    "READY",
+                    "추천 만남 후보",
+                    "입력한 출발지를 기준으로 추천했어요."
+            );
+        }
+
+        return new PlaceRecommendationGuide(
+                "READY",
+                "추천 만남 후보",
+                "출발지, 이동 편의성, 만남 목적을 참고해 추천했어요."
+        );
     }
 
     private Room findRoom(String roomCode) {

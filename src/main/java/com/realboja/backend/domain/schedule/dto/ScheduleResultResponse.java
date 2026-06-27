@@ -8,6 +8,7 @@ public record ScheduleResultResponse(
         int participantCount,
         TimeSlotResult topTimeSlot,
         List<TimeSlotResult> results,
+        PlaceRecommendationGuide placeRecommendationGuide,
         List<PlaceRecommendation> placeRecommendations
 ) {
     public record TimeSlotResult(
@@ -21,5 +22,11 @@ public record ScheduleResultResponse(
             String area,
             String reason,
             List<String> hashtags
+    ) {}
+
+    public record PlaceRecommendationGuide(
+            String status,
+            String title,
+            String description
     ) {}
 }

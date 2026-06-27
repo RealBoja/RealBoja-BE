@@ -7,12 +7,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PlaceRecommendationService {
 
     private final ObjectMapper objectMapper;
@@ -24,8 +26,12 @@ public class PlaceRecommendationService {
     private String model;
 
     public List<PlaceRecommendation> recommend(Map<String, String> participantLocations, TimeSlot topTimeSlot) {
-        if (participantLocations.size() < 2) {
+        if (participantLocations.isEmpty()) {
             return List.of();
+        }
+
+        if (participantLocations.size() == 1) {
+            return singleParticipantRecommendations(participantLocations.values().iterator().next());
         }
 
         try {
@@ -33,6 +39,7 @@ public class PlaceRecommendationService {
             PlaceRecommendationResponse response = parseResponse(responseText);
 
             if (response.recommendations() == null || response.recommendations().isEmpty()) {
+                log.warn("Gemini place recommendation response has no recommendations. responseText={}", responseText);
                 return fallbackRecommendations();
             }
 
@@ -42,6 +49,7 @@ public class PlaceRecommendationService {
                     .limit(2)
                     .toList();
         } catch (Exception e) {
+            log.warn("Failed to generate Gemini place recommendations. fallback will be used.", e);
             return fallbackRecommendations();
         }
     }
@@ -134,6 +142,86 @@ public class PlaceRecommendationService {
                 recommendation.area(),
                 recommendation.reason(),
                 List.of("#접근성", "#약속장소", "#만남추천")
+        );
+    }
+
+    private List<PlaceRecommendation> singleParticipantRecommendations(String location) {
+        String baseLocation = location.strip();
+
+        try {
+            String responseText = callGemini(buildSingleParticipantPrompt(baseLocation));
+            PlaceRecommendationResponse response = parseResponse(responseText);
+
+            if (response.recommendations() == null || response.recommendations().size() < 2) {
+                log.warn("Gemini single participant recommendation response is insufficient. responseText={}", responseText);
+                return fallbackSingleParticipantRecommendations(baseLocation);
+            }
+
+            List<PlaceRecommendation> recommendations = response.recommendations().stream()
+                    .filter(recommendation -> recommendation.area() != null && recommendation.reason() != null)
+                    .map(this::normalizeRecommendation)
+                    .limit(2)
+                    .toList();
+
+            if (recommendations.size() < 2) {
+                log.warn("Gemini single participant recommendation response has invalid items. responseText={}", responseText);
+                return fallbackSingleParticipantRecommendations(baseLocation);
+            }
+
+            return recommendations;
+        } catch (Exception e) {
+            log.warn("Failed to generate Gemini single participant recommendation. fallback will be used.", e);
+            return fallbackSingleParticipantRecommendations(baseLocation);
+        }
+    }
+
+    private String buildSingleParticipantPrompt(String location) {
+        return """
+                너는 한국 약속 장소 추천 도우미입니다.
+                사용자가 입력한 출발지 1개를 기준으로 만남 후보 2개를 추천해 주세요.
+
+                입력 출발지:
+                %s
+
+                기준:
+                - 첫 번째 추천은 반드시 입력 출발지 자체를 area로 사용
+                - 두 번째 추천은 입력 출발지와 실제로 가까운 역이나 주변 번화가를 area로 사용
+                - 두 번째 추천이 확실하지 않으면 입력 출발지 주변으로 자연스럽게 표현
+                - reason은 35자 이내의 자연스러운 한국어 한 문장
+                - hashtags는 화면에 칩으로 보여줄 짧은 해시태그 3개
+
+                반드시 JSON 형식으로만 응답해 주세요. 다른 텍스트는 절대 포함하지 마세요:
+                {
+                  "recommendations": [
+                    {
+                      "area": "%s",
+                      "reason": "입력 출발지를 추천하는 이유 한 줄",
+                      "hashtags": ["#출발역", "#가까움", "#약속장소"]
+                    },
+                    {
+                      "area": "가까운 역 또는 주변 지역명",
+                      "reason": "근처 후보로 추천하는 이유 한 줄",
+                      "hashtags": ["#근처역", "#이동짧음", "#후보"]
+                    }
+                  ]
+                }
+                """.formatted(location, location);
+    }
+
+    private List<PlaceRecommendation> fallbackSingleParticipantRecommendations(String baseLocation) {
+        String nearbyArea = baseLocation.endsWith("역") ? baseLocation + " 근처" : baseLocation + " 근처역";
+
+        return List.of(
+                new PlaceRecommendation(
+                        baseLocation,
+                        "입력한 출발지라 이동 부담이 가장 적어요.",
+                        List.of("#출발역", "#가까움", "#약속장소")
+                ),
+                new PlaceRecommendation(
+                        nearbyArea,
+                        "가까운 주변 역에서 가볍게 만나기 좋아요.",
+                        List.of("#근처역", "#이동짧음", "#후보")
+                )
         );
     }
 
