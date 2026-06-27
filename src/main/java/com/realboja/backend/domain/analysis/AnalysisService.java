@@ -35,7 +35,7 @@ public class AnalysisService {
 
 		int participantCount = reactions.size();
 		double participationRate = calculateParticipationRate(participantCount, room.getRoomSize());
-		int temperature = Math.min(100, (int)Math.round(participationRate * 100));
+		int temperature = calculateTemperature(reactions, room.getRoomSize());
 		StatusType statusType = decideStatusType(temperature);
 
 		return new AnalysisResponse(
@@ -64,6 +64,27 @@ public class AnalysisService {
 			return 0.0;
 		}
 		return Math.round(((double)participantCount / roomSize) * 100.0) / 100.0;
+	}
+
+	private int calculateTemperature(List<Reaction> reactions, int roomSize) {
+		if (roomSize <= 0) {
+			return 0;
+		}
+
+		double weightedScore = reactions.stream()
+			.mapToDouble(reaction -> getReactionWeight(reaction.getReactionType()))
+			.sum();
+
+		return Math.min(100, (int)Math.round((weightedScore / roomSize) * 100));
+	}
+
+	private double getReactionWeight(ReactionType reactionType) {
+		return switch (reactionType) {
+			case REALLY_MEET -> 1.0;
+			case PURPOSE_OK -> 0.8;
+			case IF_SOMEONE_LEADS -> 0.6;
+			case JUST_ALIVE -> 0.3;
+		};
 	}
 
 	private StatusType decideStatusType(int temperature) {
