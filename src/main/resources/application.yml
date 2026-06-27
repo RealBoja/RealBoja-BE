@@ -25,6 +25,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+    show-sql: true
     properties:
       hibernate:
         format_sql: true
@@ -47,4 +48,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+    show-sql: true
     open-in-view: false
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
